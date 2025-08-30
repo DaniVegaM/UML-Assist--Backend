@@ -1,4 +1,4 @@
-# UML Assist Backend 🚀
+# UML Assist Backend
 
 <div align="center">
   <img src="https://www.django-rest-framework.org/img/logo.png" alt="Django REST Framework" width="300"/>
