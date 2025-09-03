@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',  # Para autenticación por token
     'rest_framework_simplejwt',  # Para JWT
     'rest_framework_simplejwt.token_blacklist',  # Para blacklist de tokens
+    'corsheaders',  # Para manejar CORS
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
@@ -61,6 +62,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # Debe estar al principio
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -175,3 +177,24 @@ SIMPLE_JWT = {
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': SECRET_KEY,
 }
+
+# Configuraciones de CORS
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",  # Frontend en desarrollo
+    "http://127.0.0.1:5173",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+# Permitir todas las cabeceras durante el desarrollo
+CORS_ALLOW_ALL_HEADERS = True
+
+# Métodos HTTP permitidos
+CORS_ALLOWED_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]

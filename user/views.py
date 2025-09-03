@@ -136,7 +136,6 @@ class AuthViewSet(viewsets.GenericViewSet):
             user, created = User.objects.get_or_create(
                 email=user_data['email'],
                 defaults={
-                    'username': user_data['email'],
                     'first_name': user_data.get('given_name', ''),
                     'last_name': user_data.get('family_name', ''),
                     'access_token': token_json['access_token'],
