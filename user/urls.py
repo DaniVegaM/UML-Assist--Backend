@@ -1,8 +1,12 @@
-from django.urls import path
+from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
 
-# Opción 1: Con ViewSets (recomendado)
+# Configurar router para ViewSets
 router = DefaultRouter()
-# router.register(r'', views.DiagramViewSet)  # Descomenta cuando tengas el ViewSet
-urlpatterns = router.urls
+router.register(r'auth', views.AuthViewSet, basename='auth')
+router.register(r'users', views.UserViewSet, basename='users')
+
+urlpatterns = [
+    path('', include(router.urls)),
+]
