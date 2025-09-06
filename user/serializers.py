@@ -16,6 +16,12 @@ class GoogleAuthSerializer(serializers.Serializer):
     """
     code = serializers.CharField(required=True, help_text="Authorization code from Google OAuth")
 
+class GitHubAuthSerializer(serializers.Serializer):
+    """
+    Serializer para validar el código de autorización de GitHub
+    """
+    code = serializers.CharField(required=True, help_text="Authorization code from GitHub OAuth")
+
 class TokenResponseSerializer(serializers.Serializer):
     """
     Serializer para la respuesta de tokens JWT
