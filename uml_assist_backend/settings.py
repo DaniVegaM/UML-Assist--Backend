@@ -34,7 +34,6 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(',')
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  # Backend por defecto de Django
-    'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
 # Modelo de usuario personalizado
@@ -47,16 +46,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.contrib.sites',  # Requerido para allauth
     'rest_framework',
     'rest_framework.authtoken',  # Para autenticación por token
     'rest_framework_simplejwt',  # Para JWT
     'rest_framework_simplejwt.token_blacklist',  # Para blacklist de tokens
     'corsheaders',  # Para manejar CORS
-    'allauth',
-    'allauth.account',
-    'allauth.socialaccount',
-    'allauth.socialaccount.providers.google',
     'user',
     'diagram',
 ]
@@ -68,7 +62,6 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'allauth.account.middleware.AccountMiddleware',  # Middleware de allauth
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -129,33 +122,6 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Configuraciones para django-allauth
-SITE_ID = 1
-
-# Configuraciones de allauth
-ACCOUNT_LOGIN_METHODS = {'email', 'username'}
-ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
-ACCOUNT_EMAIL_VERIFICATION = 'optional'
-
-# Configuraciones para Google OAuth
-SOCIALACCOUNT_PROVIDERS = {
-    'google': {
-        'APP': {
-            'client_id': config('GOOGLE_OAUTH_CLIENT_ID', default=''),
-            'secret': config('GOOGLE_OAUTH_CLIENT_SECRET', default=''),
-            'key': ''
-        },
-        'SCOPE': [
-            'profile',
-            'email',
-        ],
-        'AUTH_PARAMS': {
-            'access_type': 'online',
-        },
-        'OAUTH_PKCE_ENABLED': True,
-    }
-}
 
 # Configuraciones de REST Framework para autenticación
 REST_FRAMEWORK = {
