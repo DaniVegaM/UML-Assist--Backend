@@ -1,5 +1,9 @@
 from rest_framework import serializers
 from .models import User
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth import authenticate
+from django.core.exceptions import ValidationError
+from user.utils.user_utils import generate_unique_username
 
 class UserSerializer(serializers.ModelSerializer):
     """
@@ -7,7 +11,7 @@ class UserSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'date_joined', 'is_active']
+        fields = ['id', 'username', 'email', 'date_joined', 'is_active']
         read_only_fields = ['id', 'date_joined']
 
 class GoogleAuthSerializer(serializers.Serializer):
@@ -37,3 +41,77 @@ class RefreshTokenSerializer(serializers.Serializer):
     Serializer para validar refresh token
     """
     refresh_token = serializers.CharField(required=True)
+
+
+class UserSignupSerializer(serializers.ModelSerializer):
+    """
+    Serializer para registro de usuarios
+    """
+    password = serializers.CharField(write_only = True, min_length = 8)
+    password_confirm = serializers.CharField(write_only = True)
+
+    class Meta:
+        model = User
+        fields = ('email', 'password', 'password_confirm')
+        extra_kwargs = {
+            'email': {'required': True},
+        }
+
+    def validate_email(self, value):
+        """Validar que el email no exista"""
+        if User.objects.filter(email = value).exists():
+            raise serializers.ValidationError('A user with this email already exists.')
+        return value
+
+    def validate_password(self,value):
+        """Validar complejidad del password"""
+        try:
+            validate_password(value)
+        except ValidationError as e:
+            raise serializers.ValidationError({'password': e.messages})
+        return value
+
+    def validate(self, attrs):
+        """Otras validaciones"""
+        if attrs.get('password') != attrs.get('password_confirm'):
+            raise serializers.ValidationError("Passwords don't match.")        
+        return attrs
+    
+    def create(self, validated_data):
+        validated_data.pop('password_confirm')
+
+        email = validated_data.get('email')
+        base_username = email.split('@')[0]
+        validated_data['username'] = generate_unique_username(base_username)
+
+        user = User.objects.create_user(**validated_data)
+        return user
+    
+
+class UserLoginSerializer(serializers.Serializer):
+    """
+    Serializer para inicio se sesion con email
+    """
+    password = serializers.CharField(write_only = True, required = True)
+    email = serializers.EmailField(required = True)
+
+    def validate(self, attrs):
+        """Validar credenciales de usuario"""
+        email = attrs.get('email')
+        password = attrs.get('password')
+
+        if not email or not password:
+            raise serializers.ValidationError('Email and password are required.')
+        
+        # Intentar autenticar al usuario
+        user = authenticate(email = email, password = password)
+
+        if not user:
+            raise serializers.ValidationError('Invalid email or password.')
+        
+        if not user.is_active:
+            raise serializers.ValidationError('User account is disabled.')
+        
+        attrs['user'] = user
+        return attrs
+    
