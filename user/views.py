@@ -161,13 +161,8 @@ class AuthViewSet(viewsets.GenericViewSet):
                 email=email,
                 defaults={
                     'username': username,
-                    'access_token': token_json['access_token'],
                 }
             )
-            
-            if not created:
-                user.access_token = token_json['access_token']
-                user.save(update_fields=['access_token'])
             
             refresh = RefreshToken.for_user(user)
             
@@ -427,13 +422,8 @@ class AuthViewSet(viewsets.GenericViewSet):
                 email=email,
                 defaults={
                     'username': username,
-                    'access_token': token_json['access_token'],
                 }
             )
-            
-            if not created:
-                user.access_token = token_json['access_token']
-                user.save(update_fields=['access_token'])
             
             refresh = RefreshToken.for_user(user)
             
@@ -595,35 +585,6 @@ class AuthViewSet(viewsets.GenericViewSet):
                 'error': 'Invalid or expired refresh token',
                 'success': False
             }, status=status.HTTP_401_UNAUTHORIZED)
-    
-    @action(detail=False, methods=['post'], url_path='logout', permission_classes=[IsAuthenticated])
-    def logout(self, request):
-        """
-        POST /api/user/auth/logout/
-        Body: {"refresh_token": "refresh_token_here"}
-        Logout del usuario (invalida refresh token)
-        """
-        try:
-            refresh_token = request.data.get('refresh_token')
-            if refresh_token:
-                token = RefreshToken(refresh_token)
-                token.blacklist()
-            
-            return Response({
-                'message': 'Successfully logged out',
-                'success': True
-            })
-        except TokenError:
-            return Response({
-                'message': 'Logged out (token was already invalid)',
-                'success': True
-            })
-        except Exception as e:
-            logger.error(f"Error during logout: {str(e)}")
-            return Response({
-                'message': 'Logged out with warnings',
-                'success': True
-            })
 
 class UserViewSet(viewsets.ModelViewSet):
     """
