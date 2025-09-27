@@ -104,7 +104,7 @@ class UserLoginSerializer(serializers.Serializer):
             raise serializers.ValidationError('Email and password are required.')
         
         # Intentar autenticar al usuario
-        user = authenticate(email = email, password = password)
+        user = authenticate(username = email, password = password)
 
         if not user:
             raise serializers.ValidationError('Invalid email or password.')
