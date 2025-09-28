@@ -48,11 +48,10 @@ class UserSignupSerializer(serializers.ModelSerializer):
     Serializer para registro de usuarios
     """
     password = serializers.CharField(write_only = True, min_length = 8)
-    password_confirm = serializers.CharField(write_only = True)
 
     class Meta:
         model = User
-        fields = ('email', 'password', 'password_confirm')
+        fields = ('email', 'password')
         extra_kwargs = {
             'email': {'required': True},
         }
@@ -70,16 +69,8 @@ class UserSignupSerializer(serializers.ModelSerializer):
         except ValidationError as e:
             raise serializers.ValidationError({'password': e.messages})
         return value
-
-    def validate(self, attrs):
-        """Otras validaciones"""
-        if attrs.get('password') != attrs.get('password_confirm'):
-            raise serializers.ValidationError("Passwords don't match.")        
-        return attrs
     
     def create(self, validated_data):
-        validated_data.pop('password_confirm')
-
         email = validated_data.get('email')
         base_username = email.split('@')[0]
         validated_data['username'] = generate_unique_username(base_username)

@@ -634,8 +634,7 @@ class AuthViewSet(viewsets.GenericViewSet):
         POST /api/user/auth/signup/
         Body: {
             "email": "email@example.com", 
-            "password": "password", 
-            "password_confirm": "password"
+            "password": "password"
         }
         Registro de nuevo usuario con email
         """
@@ -660,7 +659,6 @@ class AuthViewSet(viewsets.GenericViewSet):
                 'refresh_token': str(refresh), 
                 'user': user_serializer.data,
                 'success': True,
-                'created': True
             }
 
             return Response(response_data, status = status.HTTP_201_CREATED)
@@ -706,7 +704,6 @@ class AuthViewSet(viewsets.GenericViewSet):
                 'refresh_token': str(refresh), 
                 'user': user_serializer.data,
                 'success': True,
-                'message': 'Login successful'
             }
 
             return Response(response_data, status = status.HTTP_200_OK)
