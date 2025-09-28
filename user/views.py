@@ -145,19 +145,8 @@ class AuthViewSet(viewsets.GenericViewSet):
                 email=email,
                 defaults={
                     'username': username,
-                    'first_name': user_data.get('given_name', ''),
-                    'last_name': user_data.get('family_name', ''),
-                    'access_token': token_json['access_token'],
                 }
             )
-            
-            if not created:
-                user.access_token = token_json['access_token']
-                if not user.first_name and user_data.get('given_name'):
-                    user.first_name = user_data.get('given_name', '')
-                if not user.last_name and user_data.get('family_name'):
-                    user.last_name = user_data.get('family_name', '')
-                user.save(update_fields=['access_token', 'first_name', 'last_name'])
             
             refresh = RefreshToken.for_user(user)
             
@@ -410,11 +399,6 @@ class AuthViewSet(viewsets.GenericViewSet):
                     'success': False
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            full_name = user_data.get('name', '')
-            name_parts = full_name.split(' ', 1) if full_name else []
-            first_name = name_parts[0] if name_parts else ''
-            last_name = name_parts[1] if len(name_parts) > 1 else ''
-            
             base_username = email.split('@')[0]
             username = generate_unique_username(base_username)
             
@@ -422,19 +406,8 @@ class AuthViewSet(viewsets.GenericViewSet):
                 email=email,
                 defaults={
                     'username': username,
-                    'first_name': first_name,
-                    'last_name': last_name,
-                    'access_token': token_json['access_token'],
                 }
             )
-            
-            if not created:
-                user.access_token = token_json['access_token']
-                if not user.first_name and first_name:
-                    user.first_name = first_name
-                if not user.last_name and last_name:
-                    user.last_name = last_name
-                user.save(update_fields=['access_token', 'first_name', 'last_name'])
             
             refresh = RefreshToken.for_user(user)
             
@@ -597,36 +570,7 @@ class AuthViewSet(viewsets.GenericViewSet):
             return Response({
                 'error': 'Invalid or expired refresh token',
                 'success': False
-            }, status=status.HTTP_401_UNAUTHORIZED)
-    
-    @action(detail=False, methods=['post'], url_path='logout', permission_classes=[IsAuthenticated])
-    def logout(self, request):
-        """
-        POST /api/user/auth/logout/
-        Body: {"refresh_token": "refresh_token_here"}
-        Logout del usuario (invalida refresh token)
-        """
-        try:
-            refresh_token = request.data.get('refresh_token')
-            if refresh_token:
-                token = RefreshToken(refresh_token)
-                token.blacklist()
-            
-            return Response({
-                'message': 'Successfully logged out',
-                'success': True
-            })
-        except TokenError:
-            return Response({
-                'message': 'Logged out (token was already invalid)',
-                'success': True
-            })
-        except Exception as e:
-            logger.error(f"Error during logout: {str(e)}")
-            return Response({
-                'message': 'Logged out with warnings',
-                'success': True
-            })        
+            }, status=status.HTTP_401_UNAUTHORIZED)   
 
     @action(detail = False, methods=['post'], url_path = 'signup')
     def signup(self, request):
@@ -714,7 +658,6 @@ class AuthViewSet(viewsets.GenericViewSet):
                 'error': 'Login failed',
                 'success': False
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 class UserViewSet(viewsets.ModelViewSet):
     """
