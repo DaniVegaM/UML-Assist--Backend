@@ -8,14 +8,16 @@ from django.utils import timezone
 from decouple import config
 import requests
 import logging
-import uuid
 
+from user.utils.user_utils import generate_unique_username
 from .models import User
 from .serializers import (
     UserSerializer, 
     GoogleAuthSerializer, 
     GitHubAuthSerializer,
-    RefreshTokenSerializer
+    RefreshTokenSerializer,
+    UserSignupSerializer,
+    UserLoginSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -25,24 +27,6 @@ GOOGLE_CLIENT_SECRET = config('GOOGLE_OAUTH_CLIENT_SECRET', default='')
 GITHUB_CLIENT_ID = config('GITHUB_OAUTH_CLIENT_ID', default='')
 GITHUB_CLIENT_SECRET = config('GITHUB_OAUTH_CLIENT_SECRET', default='')
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
-
-def generate_unique_username(base_username):
-    """
-    Genera un username único basado en un username base.
-    Si el username ya existe, agrega un sufijo numérico o UUID.
-    """
-    username = base_username
-    counter = 1
-    
-    while User.objects.filter(username=username).exists():
-        username = f"{base_username}_{counter}"
-        counter += 1
-        
-        if counter > 999:
-            username = f"{base_username}_{uuid.uuid4().hex[:8]}"
-            break
-    
-    return username
 
 class AuthViewSet(viewsets.GenericViewSet):
     """
@@ -556,7 +540,9 @@ class AuthViewSet(viewsets.GenericViewSet):
             return Response({
                 'error': f'Error testing token: {str(e)}',
                 'success': False
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)    @action(detail=False, methods=['post'], url_path='refresh')
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)    
+        
+    @action(detail=False, methods=['post'], url_path='refresh')
     def refresh_token(self, request):
         """
         POST /api/user/auth/refresh/
@@ -584,7 +570,94 @@ class AuthViewSet(viewsets.GenericViewSet):
             return Response({
                 'error': 'Invalid or expired refresh token',
                 'success': False
-            }, status=status.HTTP_401_UNAUTHORIZED)
+            }, status=status.HTTP_401_UNAUTHORIZED)   
+
+    @action(detail = False, methods=['post'], url_path = 'signup')
+    def signup(self, request):
+        """
+        POST /api/user/auth/signup/
+        Body: {
+            "email": "email@example.com", 
+            "password": "password"
+        }
+        Registro de nuevo usuario con email
+        """
+        serializer = UserSignupSerializer(data = request.data)
+
+        if not serializer.is_valid():
+            return Response({
+                'error': 'Invalid request data',
+                'details': serializer.errors,
+                'success': False
+            }, status = status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = serializer.save()
+            
+            # Generar tokens JWT
+            refresh = RefreshToken.for_user(user)
+            user_serializer = UserSerializer(user)
+
+            response_data = {
+                'access_token': str(refresh.access_token),
+                'refresh_token': str(refresh), 
+                'user': user_serializer.data,
+                'success': True,
+            }
+
+            return Response(response_data, status = status.HTTP_201_CREATED)
+        
+        except Exception as e:
+            logger.error(f'Error during signup: {str(e)}')
+            return Response({
+                'error': 'Failed to create user account',
+                'success': False
+            }, status = status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    @action(detail = False, methods=['post'], url_path = 'login')
+    def login(self, request):
+        """
+        POST /api/user/auth/login/
+        Body: {
+            "email": "email@example.com", 
+            "password": "password"
+        }
+        Inicio de sesion con email y contraseña
+        """
+        serializer = UserLoginSerializer(data = request.data)
+
+        if not serializer.is_valid():
+            return Response({
+                'error': 'Invalid request data',
+                'details': serializer.errors,
+                'success': False
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = serializer.validated_data.get('user')
+
+            user.last_login = timezone.now()
+            user.save(update_fields = ['last_login'])
+
+            # Generar tokens JWT
+            refresh = RefreshToken.for_user(user)
+            user_serializer = UserSerializer(user)
+
+            response_data = {
+                'access_token': str(refresh.access_token),
+                'refresh_token': str(refresh), 
+                'user': user_serializer.data,
+                'success': True,
+            }
+
+            return Response(response_data, status = status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f'Error during login: {str(e)}')
+            return Response({
+                'error': 'Login failed',
+                'success': False
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class UserViewSet(viewsets.ModelViewSet):
     """
