@@ -100,6 +100,16 @@ DATABASES = {
     }
 }
 
+#Email / SMTP (desde .env; Ethereal en desarrollo)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.ethereal.email')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')          # tu cuenta de Ethereal (sin espacios)
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')  # password de Ethereal
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
+
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
@@ -180,3 +190,8 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
+
+#Frontend y token de restablecimiento
+FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')
+FRONTEND_RESET_PATH = config('FRONTEND_RESET_PATH', default='/restablecer-contrasena')
+PASSWORD_RESET_TIMEOUT = config('PASSWORD_RESET_TIMEOUT', default=3600, cast=int)  # segundos

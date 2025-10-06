@@ -106,3 +106,38 @@ class UserLoginSerializer(serializers.Serializer):
         attrs['user'] = user
         return attrs
     
+#Password reset
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    """
+    Entrada: { "email": "usuario@correo.com" }
+    """
+    email = serializers.EmailField()
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """
+    Entrada:
+    {
+      "uid": "<uidb64>",
+      "token": "<token>",
+      "new_password": "...",
+      "re_password": "..."
+    }
+    """
+    uid = serializers.CharField()
+    token = serializers.CharField()
+    new_password = serializers.CharField(write_only=True, min_length=8)
+    re_password = serializers.CharField(write_only=True, min_length=8)
+
+    def validate(self, attrs):
+        # Coincidencia
+        if attrs["new_password"] != attrs["re_password"]:
+            raise serializers.ValidationError({"re_password": "Las contraseñas no coinciden."})
+        # Reglas de Django (longitud mínima, etc.)
+        try:
+            validate_password(attrs["new_password"])
+        except ValidationError as e:
+            
+            raise serializers.ValidationError({"new_password": e.messages})
+        return attrs

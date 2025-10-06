@@ -6,6 +6,13 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from django.utils import timezone
 from decouple import config
+from django.conf import settings
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+
 import requests
 import logging
 
@@ -18,6 +25,8 @@ from .serializers import (
     RefreshTokenSerializer,
     UserSignupSerializer,
     UserLoginSerializer,
+    PasswordResetRequestSerializer,
+    PasswordResetConfirmSerializer, 
 )
 
 logger = logging.getLogger(__name__)
@@ -27,6 +36,7 @@ GOOGLE_CLIENT_SECRET = config('GOOGLE_OAUTH_CLIENT_SECRET', default='')
 GITHUB_CLIENT_ID = config('GITHUB_OAUTH_CLIENT_ID', default='')
 GITHUB_CLIENT_SECRET = config('GITHUB_OAUTH_CLIENT_SECRET', default='')
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
+FRONTEND_RESET_PATH = config('FRONTEND_RESET_PATH', default='/restablecer-contrasena')
 
 class AuthViewSet(viewsets.GenericViewSet):
     """
@@ -658,6 +668,87 @@ class AuthViewSet(viewsets.GenericViewSet):
                 'error': 'Login failed',
                 'success': False
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['post'], url_path='password/reset', permission_classes=[AllowAny])
+    def password_reset(self, request):
+        """
+        POST /api/user/auth/password/reset/
+        Body: {"email":"usuario@correo.com"}
+        Siempre responde 200 por privacidad, pero solo envía correo si el usuario existe y está activo.
+        """
+        s = PasswordResetRequestSerializer(data=request.data)
+        if not s.is_valid():
+            return Response({'details': s.errors, 'success': False}, status=status.HTTP_400_BAD_REQUEST)
+
+        email = s.validated_data['email'].strip().lower()
+
+        # No revelar existencia: respondemos OK aunque no exista
+        try:
+            user = User.objects.get(email__iexact=email, is_active=True)
+        except User.DoesNotExist:
+            return Response({'detail': 'Si el email existe, enviaremos un enlace.', 'success': True})
+
+        uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+        
+           
+        FRONTEND_URL = getattr(settings, "FRONTEND_URL", "http://localhost:5173")
+        FRONTEND_RESET_PATH = getattr(settings, "FRONTEND_RESET_PATH", "/restablecer-contrasena")
+
+        reset_url = f"{FRONTEND_URL}{FRONTEND_RESET_PATH}?uid={uidb64}&token={token}"
+
+        context = {
+            "reset_url": reset_url,
+            "year": timezone.now().year,
+        }
+
+        subject = "Restablecer tu contraseña – UML Assist"
+        text_body = render_to_string("emails/password_reset.txt", context)
+        html_body = render_to_string("emails/password_reset.html", context)
+
+
+        msg = EmailMultiAlternatives(
+            subject=subject,
+            body=text_body,
+            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+            to=[email],
+        )
+        msg.attach_alternative(html_body, "text/html")
+        msg.send(fail_silently=False)
+
+        return Response({'detail': 'Si el email existe, enviaremos un enlace.', 'success': True})
+
+
+    @action(detail=False, methods=['post'], url_path='password/reset/confirm', permission_classes=[AllowAny])
+    def password_reset_confirm(self, request):
+        """
+        POST /api/user/auth/password/reset/confirm/
+        Body: {"uid":"<uidb64>","token":"<token>","new_password":"...","re_password":"..."}
+        """
+        s = PasswordResetConfirmSerializer(data=request.data)
+        if not s.is_valid():
+            return Response({'details': s.errors, 'success': False}, status=status.HTTP_400_BAD_REQUEST)
+
+        uidb64 = s.validated_data['uid']
+        token = s.validated_data['token']
+        new_password = s.validated_data['new_password']
+
+        # Decodificar uid y traer usuario
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid, is_active=True)
+        except Exception:
+            return Response({'detail': 'Enlace inválido.', 'success': False}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validar token
+        if not default_token_generator.check_token(user, token):
+            return Response({'detail': 'Token inválido o expirado.', 'success': False}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Guardar nueva contraseña
+        user.set_password(new_password)
+        user.save(update_fields=['password'])
+
+        return Response({'detail': 'Contraseña actualizada correctamente.', 'success': True})
 
 class UserViewSet(viewsets.ModelViewSet):
     """
