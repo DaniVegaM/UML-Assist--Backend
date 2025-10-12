@@ -4,6 +4,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
 from django.core.exceptions import ValidationError
 from user.utils.user_utils import generate_unique_username
+from rest_framework.permissions import IsAuthenticated
 
 class UserSerializer(serializers.ModelSerializer):
     """
@@ -139,5 +140,19 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
             validate_password(attrs["new_password"])
         except ValidationError as e:
             
+            raise serializers.ValidationError({"new_password": e.messages})
+        return attrs
+
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True, required=True)
+    new_password = serializers.CharField(write_only=True, required=True)
+    confirm_password = serializers.CharField(write_only=True, required=True)
+
+    def validate(self, attrs):
+        if attrs['new_password'] != attrs['confirm_password']:
+            raise serializers.ValidationError({"confirm_password": "Las contraseñas no coinciden"})
+        try:
+            validate_password(attrs['new_password'])
+        except ValidationError as e:
             raise serializers.ValidationError({"new_password": e.messages})
         return attrs
