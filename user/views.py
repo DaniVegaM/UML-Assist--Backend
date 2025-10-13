@@ -769,3 +769,20 @@ class UserViewSet(viewsets.ModelViewSet):
             'user': serializer.data,
             'success': True
         })
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def change_password(self, request):
+        user = request.user
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
+        confirm_password = request.data.get('confirm_password')
+
+        if not user.check_password(current_password):
+            return Response({'message': 'Contraseña actual incorrecta'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if new_password != confirm_password:
+            return Response({'message': 'Las nuevas contraseñas no coinciden'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.save()
+        return Response({'message': 'Contraseña cambiada correctamente'}, status=status.HTTP_200_OK)
