@@ -12,8 +12,8 @@ class UserSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'date_joined', 'is_active']
-        read_only_fields = ['id', 'date_joined']
+        fields = ['id', 'username', 'email', 'date_joined', 'is_active', 'provider']
+        read_only_fields = ['id', 'date_joined', 'provider']
 
 class GoogleAuthSerializer(serializers.Serializer):
     """
@@ -59,8 +59,14 @@ class UserSignupSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         """Validar que el email no exista"""
-        if User.objects.filter(email = value).exists():
-            raise serializers.ValidationError('A user with this email already exists.')
+        existing_user = User.objects.filter(email=value).first()
+        if existing_user:
+            if existing_user.provider == 'email':
+                raise serializers.ValidationError('A user with this email already exists.')
+            else:
+                raise serializers.ValidationError(
+                    f'Este correo ya está registrado con otro método: {existing_user.provider}.'
+                )
         return value
 
     def validate_password(self,value):
@@ -75,7 +81,7 @@ class UserSignupSerializer(serializers.ModelSerializer):
         email = validated_data.get('email')
         base_username = email.split('@')[0]
         validated_data['username'] = generate_unique_username(base_username)
-
+        validated_data['provider'] = 'email'  
         user = User.objects.create_user(**validated_data)
         return user
     
@@ -88,22 +94,27 @@ class UserLoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required = True)
 
     def validate(self, attrs):
-        """Validar credenciales de usuario"""
         email = attrs.get('email')
         password = attrs.get('password')
 
         if not email or not password:
             raise serializers.ValidationError('Email and password are required.')
-        
-        # Intentar autenticar al usuario
-        user = authenticate(username = email, password = password)
 
+        # Autenticar usando email directamente
+        user = authenticate(username=email, password=password)
+        
         if not user:
             raise serializers.ValidationError('Invalid email or password.')
-        
+
         if not user.is_active:
             raise serializers.ValidationError('User account is disabled.')
-        
+
+        # Solo permitir login por email
+        if user.provider != 'email':
+            raise serializers.ValidationError(
+                f'This email is registered with another provider: {user.provider}'
+            )
+
         attrs['user'] = user
         return attrs
     
@@ -139,7 +150,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         try:
             validate_password(attrs["new_password"])
         except ValidationError as e:
-            
+
             raise serializers.ValidationError({"new_password": e.messages})
         return attrs
 

@@ -113,7 +113,7 @@ class AuthViewSet(viewsets.GenericViewSet):
             }
             
             token_response = requests.post(token_url, data=token_data, timeout=10)
-            
+
             if token_response.status_code != 200:
                 logger.error(f"Google token exchange failed: {token_response.text}")
                 return Response({
@@ -122,7 +122,7 @@ class AuthViewSet(viewsets.GenericViewSet):
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             token_json = token_response.json()
-            
+
             if 'access_token' not in token_json:
                 return Response({
                     'error': 'No access token received from Google',
@@ -131,7 +131,7 @@ class AuthViewSet(viewsets.GenericViewSet):
             
             user_info_url = f"https://www.googleapis.com/oauth2/v2/userinfo?access_token={token_json['access_token']}"
             user_response = requests.get(user_info_url, timeout=10)
-            
+
             if user_response.status_code != 200:
                 logger.error(f"Google user info failed: {user_response.text}")
                 return Response({
@@ -140,7 +140,7 @@ class AuthViewSet(viewsets.GenericViewSet):
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             user_data = user_response.json()
-            
+
             if 'email' not in user_data:
                 return Response({
                     'error': 'Email not provided by Google',
@@ -149,17 +149,31 @@ class AuthViewSet(viewsets.GenericViewSet):
             
             email = user_data['email']
             base_username = email.split('@')[0]
-            username = generate_unique_username(base_username)
+
+            # --- NUEVO: Verificar provider antes de crear o login ---
+            existing_user = User.objects.filter(email=email).first()
+            if existing_user:
+                if existing_user.provider != 'google':
+                    # Usuario existe con otro método → error
+                    return Response({
+                        'error': f'Este correo ya está registrado con otro método: {existing_user.provider}',
+                        'success': False
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                # Usuario ya registrado con Google → login
+                user = existing_user
+                created = False
+            else:
+                # Usuario no existe → crear con provider Google
+                username = generate_unique_username(base_username)
+                user = User.objects.create(
+                    email=email,
+                    username=username,
+                    provider='google'
+                )
+                created = True
             
-            user, created = User.objects.get_or_create(
-                email=email,
-                defaults={
-                    'username': username,
-                }
-            )
-            
+            # Generar tokens JWT
             refresh = RefreshToken.for_user(user)
-            
             user_serializer = UserSerializer(user)
             
             response_data = {
@@ -171,7 +185,7 @@ class AuthViewSet(viewsets.GenericViewSet):
             }
             
             return Response(response_data)
-            
+        
         except requests.RequestException as e:
             logger.error(f"Request to Google failed: {str(e)}")
             return Response({
@@ -411,11 +425,32 @@ class AuthViewSet(viewsets.GenericViewSet):
             
             base_username = email.split('@')[0]
             username = generate_unique_username(base_username)
+
+            # --- VALIDACIÓN DE PROVIDER ---
+            existing_user = User.objects.filter(email=email).first()
+            if existing_user:
+                if existing_user.provider != 'github':
+                    return Response({
+                        'error': f'Este correo ya está registrado con otro método: {existing_user.provider}',
+                        'success': False
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                user = existing_user
+                created = False
+            else:
+                username = generate_unique_username(email.split('@')[0])
+                user = User.objects.create(
+                    email=email,
+                    username=username,
+                    provider='github'  # <-- guardamos que es GitHub
+                )
+                created = True
+
             
             user, created = User.objects.get_or_create(
                 email=email,
                 defaults={
                     'username': username,
+                    'provider': 'github',
                 }
             )
             
@@ -600,7 +635,13 @@ class AuthViewSet(viewsets.GenericViewSet):
                 'details': serializer.errors,
                 'success': False
             }, status = status.HTTP_400_BAD_REQUEST)
-        
+        email = request.data.get('email')
+        existing_user = User.objects.filter(email=email).first()
+        if existing_user and existing_user.provider != 'email':
+            return Response({
+                'error': f'Este correo ya está registrado con otro método: {existing_user.provider}.',
+                'success': False
+            }, status=status.HTTP_400_BAD_REQUEST)
         try:
             user = serializer.save()
             
