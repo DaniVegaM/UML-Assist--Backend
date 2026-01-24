@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'corsheaders',  # Para manejar CORS
     'user',
     'diagram',
+    'ai_module',
 ]
 
 MIDDLEWARE = [
