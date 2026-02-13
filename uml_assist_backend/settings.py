@@ -191,6 +191,11 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Media files (imagenes subidas por usuarios)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+
 #Frontend y token de restablecimiento
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')
 FRONTEND_RESET_PATH = config('FRONTEND_RESET_PATH', default='/restablecer-contrasena')

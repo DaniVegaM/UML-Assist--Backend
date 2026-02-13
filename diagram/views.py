@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from diagram.models import Diagram
 from diagram.serializers import DiagramSerializer
 from rest_framework.permissions import IsAuthenticated
@@ -12,6 +13,7 @@ class DiagramViewSet(viewsets.ModelViewSet):
     queryset = Diagram.objects.all()
     serializer_class = DiagramSerializer
     permission_classes = [IsAuthenticated]
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
 
     def get_queryset(self):
         # Filtrar diagramas por el usuario autenticado
