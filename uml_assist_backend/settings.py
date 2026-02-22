@@ -155,6 +155,9 @@ SIMPLE_JWT = {
     'SIGNING_KEY': SECRET_KEY,
 }
 
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+
 # Configuraciones de CORS
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Frontend en desarrollo
