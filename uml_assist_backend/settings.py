@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_cleanup.apps.CleanupConfig',
     'rest_framework',
     'rest_framework.authtoken',  # Para autenticación por token
     'rest_framework_simplejwt',  # Para JWT
@@ -190,6 +191,11 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
+
+# Media files (imagenes subidas por usuarios)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 
 #Frontend y token de restablecimiento
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')
