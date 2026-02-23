@@ -13,7 +13,7 @@ class DiagramViewSet(viewsets.ModelViewSet):
     queryset = Diagram.objects.all()
     serializer_class = DiagramSerializer
     permission_classes = [IsAuthenticated]
-    parser_classes = (MultiPartParser, FormParser, JSONParser)
+    parser_classes = (MultiPartParser, JSONParser)
 
     def get_queryset(self):
         # Filtrar diagramas por el usuario autenticado
