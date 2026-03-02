@@ -32,3 +32,18 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
+            
+            docker stop uml-backend || true
+            docker rm uml-backend || true
+            
+            docker pull ${{ steps.login-ecr.outputs.registry }}/uml-assist-backend:latest
+            docker run -d --name uml-backend -p 8000:8000 ${{ steps.login-ecr.outputs.registry }}/uml-assist-backend:latest
