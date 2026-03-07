@@ -20,3 +20,4 @@ tzdata==2025.2
 urllib3==2.5.0
 Pillow==12.1.1
 gunicorn
+whitenoise
