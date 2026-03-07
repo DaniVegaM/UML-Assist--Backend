@@ -159,6 +159,8 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Frontend en desarrollo
     "http://127.0.0.1:5173",
+    "http://13.59.41.4",
+    "https://13.59.41.4"
 ]
 
 CORS_ALLOW_CREDENTIALS = True
