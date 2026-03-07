@@ -205,3 +205,5 @@ MEDIA_ROOT = '/app/media'
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')
 FRONTEND_RESET_PATH = config('FRONTEND_RESET_PATH', default='/restablecer-contrasena')
 PASSWORD_RESET_TIMEOUT = config('PASSWORD_RESET_TIMEOUT', default=3600, cast=int)  # segundos
+
+WHITENOISE_KEEP_ONLY_HASHED_FILES = True
