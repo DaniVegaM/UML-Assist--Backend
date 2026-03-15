@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'corsheaders',  # Para manejar CORS
     'user',
     'diagram',
+    'ai_module',
 ]
 
 MIDDLEWARE = [
@@ -154,6 +155,9 @@ SIMPLE_JWT = {
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': SECRET_KEY,
 }
+
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
 
 # Configuraciones de CORS
 CORS_ALLOWED_ORIGINS = [
