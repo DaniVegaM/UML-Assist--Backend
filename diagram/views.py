@@ -17,7 +17,7 @@ class DiagramViewSet(viewsets.ModelViewSet):
 
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ['title', 'created_at', 'updated_at']
-    ordering = ['title']  # orden por defecto
+    ordering = ['-created_at']  # orden por defecto
 
     def get_queryset(self):
         # Filtrar diagramas por el usuario autenticado
