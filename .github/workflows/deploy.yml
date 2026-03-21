@@ -44,6 +44,10 @@ jobs:
             
             docker stop uml-backend || true
             docker rm uml-backend || true
+
+            docker rmi ${{ steps.login-ecr.outputs.registry }}/uml-assist-backend:latest || true
             
             docker pull ${{ steps.login-ecr.outputs.registry }}/uml-assist-backend:latest
             docker run -d --name uml-backend --env-file /home/ec2-user/app-config/backend.env -p 8000:8000 -v /home/ec2-user/media:/app/media ${{ steps.login-ecr.outputs.registry }}/uml-assist-backend:latest
+
+            docker exec uml-backend python manage.py migrate --noinput
