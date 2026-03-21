@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 from decouple import config
 from datetime import timedelta
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,7 +28,12 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(',')
+ALLOWED_HOSTS = [
+    'uml-assist.danivegam.com',
+    'localhost',
+    '127.0.0.1',
+    'localhost:5173',
+]
 
 
 # Application definition
@@ -60,6 +66,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # Debe estar al principio
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware', # Para servir archivos estáticos en producción
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -165,6 +172,10 @@ if DEBUG:
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Frontend en desarrollo
     "http://127.0.0.1:5173",
+    "http://13.59.41.4",
+    "https://13.59.41.4",
+    "http://uml-assist.danivegam.com",
+    "https://uml-assist.danivegam.com",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -180,6 +191,10 @@ CORS_ALLOWED_METHODS = [
     'PATCH',
     'POST',
     'PUT',
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://uml-assist.danivegam.com",
 ]
 
 # Para validacion de contrasenas
@@ -200,10 +215,12 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Media files (imagenes subidas por usuarios)
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = '/app/media'
 
 
 #Frontend y token de restablecimiento
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')
 FRONTEND_RESET_PATH = config('FRONTEND_RESET_PATH', default='/restablecer-contrasena')
 PASSWORD_RESET_TIMEOUT = config('PASSWORD_RESET_TIMEOUT', default=3600, cast=int)  # segundos
+
+WHITENOISE_KEEP_ONLY_HASHED_FILES = True

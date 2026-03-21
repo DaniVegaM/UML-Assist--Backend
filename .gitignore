@@ -148,9 +148,6 @@ Desktop.ini
 # Linux
 *~
 
-# Media files (adjust as needed)
-media/
-
 # Static files (for production)
 staticfiles/
 static_root/
