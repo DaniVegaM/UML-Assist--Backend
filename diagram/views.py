@@ -4,7 +4,7 @@ from diagram.models import Diagram
 from diagram.serializers import DiagramSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
-
+from rest_framework import filters
 
 class DiagramViewSet(viewsets.ModelViewSet):
     """
@@ -14,6 +14,10 @@ class DiagramViewSet(viewsets.ModelViewSet):
     serializer_class = DiagramSerializer
     permission_classes = [IsAuthenticated]
     parser_classes = (MultiPartParser, JSONParser)
+
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ['title', 'created_at', 'updated_at']
+    ordering = ['-created_at']  # orden por defecto
 
     def get_queryset(self):
         # Filtrar diagramas por el usuario autenticado
