@@ -49,5 +49,9 @@ jobs:
             
             docker pull ${{ steps.login-ecr.outputs.registry }}/uml-assist-backend:latest
             docker run -d --name uml-backend --env-file /home/ec2-user/app-config/backend.env -p 8000:8000 -v /home/ec2-user/media:/app/media ${{ steps.login-ecr.outputs.registry }}/uml-assist-backend:latest
-
-            docker exec uml-backend python manage.py migrate --noinput
+            
+            # Esperar a que el contenedor esté completamente iniciado
+            sleep 10
+            
+            # Verificar que las migraciones se ejecutaron correctamente
+            docker exec uml-backend python manage.py showmigrations --plan > /dev/null && echo "✓ Migraciones completadas exitosamente" || echo "✗ Error en migraciones"

@@ -215,7 +215,10 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Media files (imagenes subidas por usuarios)
 MEDIA_URL = '/media/'
-MEDIA_ROOT = '/app/media'
+if DEBUG:
+    MEDIA_ROOT = BASE_DIR / 'media'
+else:
+    MEDIA_ROOT = '/app/media'
 
 
 #Frontend y token de restablecimiento
