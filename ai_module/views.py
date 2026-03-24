@@ -9,6 +9,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 
+from user.models import User
+
 
 class ReviewDiagramView(APIView):
     """
@@ -20,6 +22,21 @@ class ReviewDiagramView(APIView):
         """
         Método POST para revisar un diagrama
         """
+        # Verificar si el usuario tiene peticiones disponibles
+        user = request.user
+        if user.ai_diagram_requests_limit <= 0:
+            return Response(
+                {
+                    "error": "Sin peticiones disponibles",
+                    "detail": "Ya no tienes más peticiones gratuitas para revisar diagramas con IA. Contacta al administrador para más información."
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Decrementar el contador de peticiones
+        user.ai_diagram_requests_limit -= 1
+        user.save()
+        
         data = request.data
         diagramType = data.get('diagramType')
         intermediateLanguage = data.get('intermediateLanguage')
@@ -181,4 +198,34 @@ class ReviewDiagramView(APIView):
 
         print("RESPUESTA DE LA IA:======================", data['choices'][0]['message']['content'])
         
-        return Response(data['choices'][0]['message']['content'], status=status.HTTP_200_OK)
+        # Obtener peticiones restantes después de procesar
+        user.refresh_from_db()
+        
+        return Response(
+            {
+                "feedback": data['choices'][0]['message']['content'],
+                "remaining_requests": user.ai_diagram_requests_limit
+            }, 
+            status=status.HTTP_200_OK
+        )
+
+
+class AIDiagramRequestsView(APIView):
+    """
+    Vista para obtener el número de peticiones de IA disponibles para el usuario
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """
+        Retorna el número de peticiones de diagrama disponibles para el usuario actual
+        """
+        user = request.user
+        return Response(
+            {
+                "remaining_requests": user.ai_diagram_requests_limit,
+                "username": user.username,
+                "email": user.email
+            },
+            status=status.HTTP_200_OK
+        )

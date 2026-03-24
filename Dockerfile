@@ -10,6 +10,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
+    netcat-traditional \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/
@@ -17,7 +18,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . /app/
 
+# Copiar y hacer ejecutable el script de entrada
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 EXPOSE 8000
 
-# 9. Comando para arrancar la app con Gunicorn (servidor de producción)
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "uml_assist_backend.wsgi:application"]
+# Usar el script de entrada que maneja migraciones automáticamente
+ENTRYPOINT ["/app/entrypoint.sh"]

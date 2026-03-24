@@ -19,6 +19,9 @@ class User(AbstractUser):
         choices=PROVIDER_CHOICES,
         default='email'
     )
+    
+    # Máximo de peticiones para revisar diagrama con IA
+    ai_diagram_requests_limit = models.IntegerField(default=10)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
