@@ -34,8 +34,9 @@ if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='uml-assist.danivegam.com,localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = [host.strip() for host in config('ALLOWED_HOSTS', default='uml-assist.danivegam.com,localhost,127.0.0.1').split(',')]
 
 
 # Application definition
