@@ -48,8 +48,9 @@ jobs:
             docker stop uml-backend || true
             docker rm uml-backend || true
 
-            # Remover imagen antigua
-            docker rmi ${{ steps.login-ecr.outputs.registry }}/uml-assist-backend:latest || true
+            # Limpiar espacio en disco eliminando recursos de Docker no usados
+            echo "Limpiando recursos de Docker no utilizados..."
+            docker system prune -af
             
             # Descargar nueva imagen
             echo "Descargando nueva imagen..."
