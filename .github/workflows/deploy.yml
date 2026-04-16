@@ -40,18 +40,66 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            # Loguearse en ECR
             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
             
+            # Detener y remover contenedor anterior
+            echo "Deteniendo contenedor anterior..."
             docker stop uml-backend || true
             docker rm uml-backend || true
 
+            # Remover imagen antigua
             docker rmi ${{ steps.login-ecr.outputs.registry }}/uml-assist-backend:latest || true
             
+            # Descargar nueva imagen
+            echo "Descargando nueva imagen..."
             docker pull ${{ steps.login-ecr.outputs.registry }}/uml-assist-backend:latest
-            docker run -d --name uml-backend --env-file /home/ec2-user/app-config/backend.env -p 8000:8000 -v /home/ec2-user/media:/app/media ${{ steps.login-ecr.outputs.registry }}/uml-assist-backend:latest
+            
+            # Ejecutar nuevo contenedor
+            echo "Iniciando nuevo contenedor..."
+            docker run -d \
+              --name uml-backend \
+              --env-file /home/ec2-user/app-config/backend.env \
+              -p 8000:8000 \
+              -v /home/ec2-user/media:/app/media \
+              --restart unless-stopped \
+              ${{ steps.login-ecr.outputs.registry }}/uml-assist-backend:latest
             
             # Esperar a que el contenedor esté completamente iniciado
-            sleep 10
+            echo "Esperando que el contenedor se inicie..."
+            sleep 15
+            
+            # Verificar que el contenedor está corriendo
+            if ! docker ps | grep uml-backend; then
+              echo "✗ ERROR: El contenedor no está corriendo"
+              docker logs uml-backend
+              exit 1
+            fi
+            echo "✓ Contenedor está corriendo"
             
             # Verificar que las migraciones se ejecutaron correctamente
-            docker exec uml-backend python manage.py showmigrations --plan > /dev/null && echo "✓ Migraciones completadas exitosamente" || echo "✗ Error en migraciones"
+            echo "Verificando migraciones..."
+            if docker exec uml-backend python manage.py showmigrations --plan > /dev/null 2>&1; then
+              echo "✓ Migraciones completadas exitosamente"
+            else
+              echo "✗ Error en migraciones"
+              docker logs uml-backend
+              exit 1
+            fi
+            
+            # Health check básico
+            echo "Realizando health check..."
+            for i in {1..5}; do
+              if curl -f http://localhost:8000/health/ > /dev/null 2>&1; then
+                echo "✓ Health check pasado"
+                break
+              fi
+              if [ $i -lt 5 ]; then
+                echo "Intento $i/5 - Esperando disponibilidad del servidor..."
+                sleep 3
+              else
+                echo "✗ Health check falló después de 5 intentos"
+                docker logs uml-backend
+                exit 1
+              fi
+            done

@@ -28,12 +28,14 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = [
-    'uml-assist.danivegam.com',
-    'localhost',
-    '127.0.0.1',
-    'localhost:5173',
-]
+# Configuración de seguridad para producción
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='uml-assist.danivegam.com,localhost,127.0.0.1').split(',')
 
 
 # Application definition
@@ -170,14 +172,10 @@ if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
 
 # Configuraciones de CORS
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # Frontend en desarrollo
-    "http://127.0.0.1:5173",
-    "http://13.59.41.4",
-    "https://13.59.41.4",
-    "http://uml-assist.danivegam.com",
-    "https://uml-assist.danivegam.com",
-]
+CORS_ALLOWED_ORIGINS = config(
+    'CORS_ALLOWED_ORIGINS',
+    default='http://localhost:5173,http://127.0.0.1:5173,https://uml-assist.danivegam.com'
+).split(',')
 
 CORS_ALLOW_CREDENTIALS = True
 
